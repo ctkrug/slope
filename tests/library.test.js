@@ -17,6 +17,22 @@ describe('SAMPLES', () => {
       expect(curveName, `${sample.name} -> ${curveName}`).toBe(sample.expectedCurve);
     }
   });
+
+  it('has at least one sample that actually triggers detectRegression', () => {
+    // The product's headline feature is catching a function whose growth
+    // looks fine for small n and only reveals a worse complexity class
+    // later — the library should prove that path works, not just the
+    // steady-state curve fit.
+    const generate = GENERATORS[getSample('Fast, until a fallback kicks in').generator];
+    const { regression } = analyzeRun(
+      getSample('Fast, until a fallback kicks in').source,
+      getSample('Fast, until a fallback kicks in').sizes,
+      generate
+    );
+    expect(regression.regressed).toBe(true);
+    expect(regression.earlyCurve).toBe('O(n)');
+    expect(regression.overallCurve).toBe('O(n^2)');
+  });
 });
 
 describe('getSample', () => {

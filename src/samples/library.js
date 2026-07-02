@@ -84,6 +84,33 @@ export const SAMPLES = [
     sizes: [100, 200, 400, 800, 1600],
     expectedCurve: 'O(n^2)',
   },
+  {
+    name: 'Fast, until a fallback kicks in',
+    description:
+      "Scans only a small recent window while the input is under a size threshold — past " +
+      "it, a fallback scans everything seen so far. Looks O(n) until it secretly isn't.",
+    source: `function findRecentDuplicates(arr) {
+  const RECENT_WINDOW = 8;
+  const FAST_PATH_LIMIT = 200;
+  const seen = [];
+  let duplicates = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const scanLimit = arr.length <= FAST_PATH_LIMIT ? RECENT_WINDOW : seen.length;
+    const start = seen.length > scanLimit ? seen.length - scanLimit : 0;
+    for (let j = start; j < seen.length; j++) {
+      if (seen[j] === arr[i]) {
+        duplicates++;
+        break;
+      }
+    }
+    seen.push(arr[i]);
+  }
+  return duplicates;
+}`,
+    generator: 'random array',
+    sizes: [50, 100, 150, 300, 600, 1200],
+    expectedCurve: 'O(n^2)',
+  },
 ];
 
 export function getSample(name) {
