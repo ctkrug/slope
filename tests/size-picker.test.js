@@ -66,6 +66,17 @@ describe('createSizePicker', () => {
     expect(container.querySelector('.size-picker-error').hidden).toBe(false);
   });
 
+  it('shows an error mentioning the cap when a size over MAX_SIZE is entered', () => {
+    const { container, picker } = setUp({});
+    const input = container.querySelector('#size-input');
+    input.value = String(MAX_SIZE + 1);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(picker.getSizes()).toEqual([]);
+    const errorEl = container.querySelector('.size-picker-error');
+    expect(errorEl.hidden).toBe(false);
+    expect(errorEl.textContent).toContain(MAX_SIZE.toLocaleString());
+  });
+
   it('removes a size when its chip remove button is clicked', () => {
     const { container, picker } = setUp({ initialSizes: [10, 100] });
     container.querySelector('.chip__remove[data-size="10"]').click();
