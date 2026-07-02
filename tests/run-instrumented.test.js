@@ -47,6 +47,15 @@ describe('runInstrumented', () => {
     expect(truthy.ops).toBeLessThan(falsy.ops);
   });
 
+  it('correctly counts a ternary nested inside another ternary branch', () => {
+    const src = 'function f(x) { return x > 10 ? (x + 1) : (x > 0 ? (x + x) : (x - 1 - 1 - 1 - 1)); }';
+    const outerTrue = runInstrumented(src, 20);
+    const innerTrue = runInstrumented(src, 5);
+    const bothFalse = runInstrumented(src, -5);
+    expect(outerTrue.ops).toBeLessThan(innerTrue.ops);
+    expect(innerTrue.ops).toBeLessThan(bothFalse.ops);
+  });
+
   it('does not count a short-circuited operand of && or ||', () => {
     const src = `function f({ flag, arr }) {
       return flag && (arr[0] + arr[0] + arr[0] + arr[0]);
