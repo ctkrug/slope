@@ -33,14 +33,15 @@ guessing from source text.
 
 ## Epic 3 — UI: function input, plot, and library
 
-- [ ] Build the function paste box (syntax-aware textarea or lightweight CodeMirror) with
-      inline parse-error display.
-- [ ] Build the live canvas plot: log-scaled axes, gridlines, measured series + reference curve
+- [x] Build the function paste box (syntax-aware textarea or lightweight CodeMirror) with
+      inline parse-error display. *(Themed textarea, per VISION's no-framework call; inline
+      error + red border on parse/runtime failure.)*
+- [x] Build the live canvas plot: log-scaled axes, gridlines, measured series + reference curve
       overlay, `devicePixelRatio`-aware sizing per `docs/DESIGN.md`.
-- [ ] Build the size picker control (chip/tag input for the `n` values to test) and the sample
+- [x] Build the size picker control (chip/tag input for the `n` values to test) and the sample
       function library (binary search, bubble sort, memoized Fibonacci, a "looks O(n), secretly
       O(n²)" trap) as one-click loadable presets.
-- [ ] **Design polish**: implement the full `docs/DESIGN.md` direction — blueprint tokens,
+- [x] **Design polish**: implement the full `docs/DESIGN.md` direction — blueprint tokens,
       JetBrains Mono/Inter type, the animated wordmark, plot-reveal and fit-match motion, synth
       SFX with persisted mute — across desktop and phone breakpoints.
 
