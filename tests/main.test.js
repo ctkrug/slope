@@ -66,6 +66,23 @@ describe('main entrypoint', () => {
     expect(app.querySelector('.fit-label').textContent).not.toBe('');
   });
 
+  it('does not run a measurement on a plain Enter without a modifier key', async () => {
+    await import('../src/main.js');
+    const app = document.getElementById('app');
+    vi.runAllTimers();
+
+    const fitLabel = app.querySelector('.fit-label');
+    const before = fitLabel.textContent;
+    const textarea = app.querySelector('#fn-source');
+    textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    vi.runAllTimers();
+
+    // A plain Enter is a normal newline keystroke in the textarea — it
+    // must not double as the measure shortcut, or every multi-line paste
+    // would keep re-triggering a run mid-edit.
+    expect(fitLabel.textContent).toBe(before);
+  });
+
   it('shows a friendly prompt instead of "closest match: null" when every size is removed', async () => {
     await import('../src/main.js');
     const app = document.getElementById('app');
