@@ -38,10 +38,16 @@ export function nestedArray(n) {
   return Array.from({ length: n }, () => randomArray(randomInt(5)));
 }
 
+/** The size itself, unwrapped — for functions whose input is a number (e.g. recursive numeric algorithms). */
+export function scalarN(n) {
+  return n;
+}
+
 export const GENERATORS = {
   'random array': randomArray,
   'sorted array': sortedArray,
   'reverse-sorted array': reverseSortedArray,
   'random string': randomString,
   'nested array': nestedArray,
+  'n (number)': scalarN,
 };

@@ -5,6 +5,7 @@ import {
   randomArray,
   randomString,
   reverseSortedArray,
+  scalarN,
   sortedArray,
 } from '../src/core/generators.js';
 
@@ -50,6 +51,12 @@ describe('nestedArray', () => {
   });
 });
 
+describe('scalarN', () => {
+  it('returns the size itself', () => {
+    expect(scalarN(42)).toBe(42);
+  });
+});
+
 describe('GENERATORS', () => {
   it('exposes every generator by a human-readable name', () => {
     expect(Object.keys(GENERATORS)).toEqual([
@@ -58,11 +65,13 @@ describe('GENERATORS', () => {
       'reverse-sorted array',
       'random string',
       'nested array',
+      'n (number)',
     ]);
   });
 
-  it('each generator produces output sized to n', () => {
-    for (const generate of Object.values(GENERATORS)) {
+  it('each collection generator produces output sized to n', () => {
+    for (const [name, generate] of Object.entries(GENERATORS)) {
+      if (name === 'n (number)') continue;
       expect(generate(12)).toHaveLength(12);
     }
   });
