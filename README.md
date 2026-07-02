@@ -26,21 +26,36 @@ code, not guessed loop bounds. Those counts, taken across a range of input sizes
 get plotted alongside reference curves (O(1), O(log n), O(n), O(n log n), O(n²), O(2ⁿ), ...)
 so you can see which curve the measured growth actually tracks.
 
-## Planned features
+## Features
 
-- **Live instrumentation** — paste a JS function, run it against generated inputs (arrays,
-  strings, numbers) at increasing sizes, and count real primitive operations via an AST-walking
-  interpreter shim (no `eval`-and-hope timing).
-- **Reference curve overlay** — plot the measured op-count series against normalized Big-O
-  reference curves and highlight the best-fit curve.
-- **Regression detection** — flag when the measured growth diverges from the curve the first
-  few data points suggested (the "secretly O(n²)" moment).
-- **Input generators** — built-in generators for common shapes (random arrays, sorted arrays,
-  reverse-sorted arrays, strings, nested arrays) plus a custom generator slot.
-- **Shareable snapshots** — encode a run (function + sizes + results) into a URL so a review
-  comment or a Slack message can link straight to the plotted result.
-- **Sample library** — a few canonical functions (binary search, bubble sort, memoized
-  fibonacci, a classic "looks O(n) but isn't" trap) to try before pasting your own.
+- **Live instrumentation** — paste a JS function, run it against generated inputs at sizes you
+  pick, and count real primitive operations via a source-splicing AST walker (no `eval`-and-hope
+  timing). Loop bodies carry an iteration cap so a runaway paste throws instead of hanging the tab.
+- **Reference curve overlay** — the measured op-count series plots against a normalized Big-O
+  reference curve, with the best-fit curve named live.
+- **Regression detection** — flags when the measured growth diverges from the curve the early
+  data points suggested (the "secretly O(n²)" moment), naming the exact size it starts at.
+- **Input generators** — random array, sorted array, reverse-sorted array, random string,
+  nested array, and a plain numeric `n` for recursive numeric functions.
+- **Sample library** — one-click presets: binary search, bubble sort, memoized Fibonacci, and a
+  "looks linear, secretly O(n²)" trap.
+- **Blueprint/technical UI** — a log-log canvas plot as the hero, synth SFX (WebAudio,
+  zero audio files) with a persisted mute toggle, and a responsive layout from phone to desktop.
+
+## Getting started
+
+```
+npm install
+npm run dev      # dev server
+npm test         # vitest
+npm run build    # static production build to dist/
+```
+
+Paste a function into the editor (or pick a sample), choose input sizes, and press **Measure**.
+Functions take a single argument — the generated input for that size — so a two-argument
+function like `(a, b) => a + b` won't work as pasted; adapt it to `(arr) => arr[0] + arr[1]`
+or similar. Recursive numeric functions (Fibonacci, factorial) should use the **n (number)**
+generator so they receive a plain size instead of an array.
 
 ## Stack
 
@@ -57,8 +72,11 @@ subpath (`/big-o-playground/`) via relative asset paths.
 
 ## Status
 
-Early scaffold — see [`docs/VISION.md`](docs/VISION.md) for the full design and
-[`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
+Core instrumentation, measurement, and UI are functionally complete — see
+[`docs/VISION.md`](docs/VISION.md) for the full design,
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a map of the codebase, and
+[`docs/BACKLOG.md`](docs/BACKLOG.md) for what's left (URL-sharing and the standalone landing
+page are the remaining epics).
 
 ## License
 
