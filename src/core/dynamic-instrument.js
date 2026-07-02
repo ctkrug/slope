@@ -53,3 +53,30 @@ export function countNodeOps(node) {
   walk(node);
   return total;
 }
+
+/**
+ * Applies a list of `{ index, insert }` edits to `text` by inserting each
+ * `insert` string at its `index` (a character offset into `text`, as
+ * produced by acorn's `node.start`/`node.end`). Insert-only, so offsets
+ * never shift: edits can be collected in any order. Multiple edits at the
+ * same index are concatenated in the order they were pushed.
+ */
+export function applyEdits(text, edits) {
+  const byIndex = new Map();
+  for (const edit of edits) {
+    const existing = byIndex.get(edit.index);
+    if (existing) {
+      existing.push(edit.insert);
+    } else {
+      byIndex.set(edit.index, [edit.insert]);
+    }
+  }
+
+  let out = '';
+  for (let i = 0; i <= text.length; i += 1) {
+    const inserts = byIndex.get(i);
+    if (inserts) out += inserts.join('');
+    if (i < text.length) out += text[i];
+  }
+  return out;
+}
