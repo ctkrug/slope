@@ -21,6 +21,12 @@ app.innerHTML = `
     ${renderWordmark()}
     <div class="app__header-right">
       <p class="app__tagline">Big-O, measured not guessed.</p>
+      <a
+        class="header-link"
+        href="https://github.com/ctkrug/big-o-playground"
+        target="_blank"
+        rel="noopener"
+      >GitHub&nbsp;↗</a>
       <button type="button" class="mute-toggle" aria-pressed="false" aria-label="Mute sound">🔊</button>
     </div>
   </header>
