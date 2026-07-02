@@ -56,6 +56,18 @@ describe('runInstrumented', () => {
     expect(innerTrue.ops).toBeLessThan(bothFalse.ops);
   });
 
+  it('counts exactly the comparisons actually evaluated in a chained ternary ladder', () => {
+    // A common real-world pattern (a threshold/priority ladder). Each rung
+    // only evaluates as many comparisons as it takes to land on the taken
+    // branch, so the op count should match that exactly rather than
+    // including every rung's comparison regardless of which one is hit.
+    const src = 'function f(x) { return x > 10 ? 1 : x > 5 ? 2 : x > 0 ? 3 : 4; }';
+    // x=7 evaluates `x > 10` (false) then `x > 5` (true): 2 comparisons.
+    expect(runInstrumented(src, 7)).toMatchObject({ result: 2, ops: 2 });
+    // x=-1 evaluates all three comparisons before landing on the final else.
+    expect(runInstrumented(src, -1)).toMatchObject({ result: 4, ops: 3 });
+  });
+
   it('does not count a short-circuited operand of && or ||', () => {
     const src = `function f({ flag, arr }) {
       return flag && (arr[0] + arr[0] + arr[0] + arr[0]);
