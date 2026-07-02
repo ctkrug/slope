@@ -28,6 +28,14 @@ describe('countNodeOps', () => {
     // function is never invoked here, its internal op-sites don't count.
     expect(opsIn('() => (b) => b + 1')).toBe(0);
   });
+
+  it('counts a compound assignment as an op-site', () => {
+    expect(opsIn('function f(t, x) { t += x; }')).toBe(1);
+  });
+
+  it('does not count a plain assignment as an op-site', () => {
+    expect(opsIn('function f(t, x) { t = x; }')).toBe(0);
+  });
 });
 
 describe('applyEdits', () => {

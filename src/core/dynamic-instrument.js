@@ -57,6 +57,10 @@ export function countNodeOps(node) {
     if (!n || typeof n.type !== 'string') return;
     if (isFunctionNode(n)) return;
     if (OP_NODE_TYPES.has(n.type)) total += 1;
+    // A compound assignment (+=, -=, *=, ...) does real arithmetic work,
+    // unlike a plain `=`, so it counts as an op-site the same as its
+    // binary-operator equivalent would.
+    if (n.type === 'AssignmentExpression' && n.operator !== '=') total += 1;
 
     for (const key in n) {
       if (key === 'type' || key === 'start' || key === 'end') continue;
