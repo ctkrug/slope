@@ -49,6 +49,11 @@ describe('nestedArray', () => {
     expect(arr).toHaveLength(8);
     expect(arr.every(Array.isArray)).toBe(true);
   });
+
+  it('keeps each inner array within the documented 0-4 element bound', () => {
+    const arr = nestedArray(50);
+    expect(arr.every((inner) => inner.length >= 0 && inner.length <= 4)).toBe(true);
+  });
 });
 
 describe('scalarN', () => {
