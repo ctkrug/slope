@@ -103,3 +103,42 @@ a {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Wordmark — the "O" traces itself once on load, per docs/DESIGN.md. */
+.wordmark {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.wordmark__o-wrap {
+  position: relative;
+  display: inline-block;
+  color: var(--accent);
+}
+
+.wordmark__o-trace {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.wordmark__o-trace circle {
+  fill: none;
+  stroke: var(--accent-support);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 101;
+  stroke-dashoffset: 101;
+  animation: trace-circle 900ms ease-out 200ms forwards;
+}
+
+@keyframes trace-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
