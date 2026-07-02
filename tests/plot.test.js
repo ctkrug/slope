@@ -1,7 +1,24 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { CURVES } from '../src/core/curves.js';
-import { computeDomain, createPlot, mapLog } from '../src/ui/plot.js';
+import { computeDomain, createPlot, formatTick, mapLog } from '../src/ui/plot.js';
+
+describe('formatTick', () => {
+  it('formats small values as-is', () => {
+    expect(formatTick(5)).toBe('5');
+  });
+
+  it('formats thousands, millions, billions, and trillions with a suffix', () => {
+    expect(formatTick(2_000)).toBe('2k');
+    expect(formatTick(3_000_000)).toBe('3M');
+    expect(formatTick(4_000_000_000)).toBe('4B');
+    expect(formatTick(5_000_000_000_000)).toBe('5T');
+  });
+
+  it('stays readable for the huge op counts a quadratic function at n=10M produces', () => {
+    expect(formatTick(1e14)).toBe('100T');
+  });
+});
 
 describe('computeDomain', () => {
   it('spans the min and max n and ops across samples', () => {

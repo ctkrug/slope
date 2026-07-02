@@ -96,7 +96,9 @@ function drawGrid(ctx, area, nDomain, opsDomain, canvasWidth) {
   }
 }
 
-function formatTick(value) {
+export function formatTick(value) {
+  if (value >= 1_000_000_000_000) return `${value / 1_000_000_000_000}T`;
+  if (value >= 1_000_000_000) return `${value / 1_000_000_000}B`;
   if (value >= 1_000_000) return `${value / 1_000_000}M`;
   if (value >= 1_000) return `${value / 1_000}k`;
   return String(value);
