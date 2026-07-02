@@ -37,6 +37,25 @@ describe('runInstrumented', () => {
     expect(positive.ops).toBeLessThan(negative.ops);
   });
 
+  it('only counts the branch actually taken by a ternary expression', () => {
+    // A ternary embedded in a single statement (as opposed to an if/else,
+    // which already instruments each branch separately) used to be summed
+    // statically for both arms regardless of which one ran.
+    const src = '(x) => x > 0 ? (x + 1) : (x - 1 + x - 1 + x - 1)';
+    const truthy = runInstrumented(src, 5);
+    const falsy = runInstrumented(src, -5);
+    expect(truthy.ops).toBeLessThan(falsy.ops);
+  });
+
+  it('does not count a short-circuited operand of && or ||', () => {
+    const src = `function f({ flag, arr }) {
+      return flag && (arr[0] + arr[0] + arr[0] + arr[0]);
+    }`;
+    const shortCircuited = runInstrumented(src, { flag: false, arr: [] });
+    const evaluated = runInstrumented(src, { flag: true, arr: [1] });
+    expect(shortCircuited.ops).toBeLessThan(evaluated.ops);
+  });
+
   it('counts operations inside an inline callback when invoked', () => {
     const src = '(arr) => arr.map((x) => x * 2).reduce((a, b) => a + b, 0)';
     const { result, ops } = runInstrumented(src, [1, 2, 3, 4, 5]);

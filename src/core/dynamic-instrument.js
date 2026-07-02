@@ -194,6 +194,65 @@ function opsIncrement(count) {
 const ITER_GUARD = `if(++${ITER_VAR}>${ITER_CAP_VAR}){throw new RangeError('Operation limit exceeded — likely an infinite loop or runaway recursion.');}`;
 
 /**
+ * Counts a subtree's op-sites the way they actually execute rather than
+ * the way `countNodeOps` does (a flat static sum). A `ConditionalExpression`
+ * only ever runs one of its two branches, and a `LogicalExpression`'s right
+ * operand may be skipped entirely by short-circuiting — statically summing
+ * both sides, as a flat count would, over-counts whichever branch didn't
+ * run. Instead, each such branch is excluded from the returned "always
+ * executes" total and gets its own inline counter spliced directly into
+ * its position in `edits`, so it only adds to `__ops` when the branch is
+ * actually reached at runtime. Nested conditionals inside a branch are
+ * handled the same way, recursively.
+ */
+function countAlwaysExecutedOps(node, edits) {
+  let total = 0;
+
+  function wrapBranch(branch) {
+    if (!branch) return;
+    const branchOps = countAlwaysExecutedOps(branch, edits);
+    if (branchOps > 0) {
+      edits.push({ index: branch.start, insert: `(${COUNTER_VAR}+=${branchOps},` });
+      edits.push({ index: branch.end, insert: ')' });
+    }
+  }
+
+  function walk(n) {
+    if (!n || typeof n.type !== 'string') return;
+    if (isFunctionNode(n)) return;
+
+    if (n.type === 'ConditionalExpression') {
+      walk(n.test);
+      wrapBranch(n.consequent);
+      wrapBranch(n.alternate);
+      return;
+    }
+    if (n.type === 'LogicalExpression') {
+      total += 1;
+      walk(n.left);
+      wrapBranch(n.right);
+      return;
+    }
+
+    if (OP_NODE_TYPES.has(n.type)) total += 1;
+    if (n.type === 'AssignmentExpression' && n.operator !== '=') total += 1;
+
+    for (const key in n) {
+      if (key === 'type' || key === 'start' || key === 'end') continue;
+      const value = n[key];
+      if (Array.isArray(value)) {
+        for (const child of value) walk(child);
+      } else if (value && typeof value.type === 'string') {
+        walk(value);
+      }
+    }
+  }
+
+  walk(node);
+  return total;
+}
+
+/**
  * Recursively finds function expressions nested inside a non-statement
  * expression (e.g. a callback argument, a variable-bound comparator) and
  * instruments each one's body, so operations executed inside them are
@@ -253,7 +312,7 @@ function instrumentStatement(stmt, edits) {
       return;
 
     case 'IfStatement': {
-      const prefix = opsIncrement(countNodeOps(stmt.test));
+      const prefix = opsIncrement(countAlwaysExecutedOps(stmt.test, edits));
       if (prefix) edits.push({ index: stmt.start, insert: prefix });
       findNestedFunctions(stmt.test, edits);
       instrumentBody(stmt.consequent, edits, '');
@@ -263,17 +322,17 @@ function instrumentStatement(stmt, edits) {
 
     case 'ForStatement': {
       if (stmt.init) {
-        const initOps = opsIncrement(countNodeOps(stmt.init));
+        const initOps = opsIncrement(countAlwaysExecutedOps(stmt.init, edits));
         if (initOps) edits.push({ index: stmt.start, insert: initOps });
         findNestedFunctions(stmt.init, edits);
       }
       let perIteration = 0;
       if (stmt.test) {
-        perIteration += countNodeOps(stmt.test);
+        perIteration += countAlwaysExecutedOps(stmt.test, edits);
         findNestedFunctions(stmt.test, edits);
       }
       if (stmt.update) {
-        perIteration += countNodeOps(stmt.update);
+        perIteration += countAlwaysExecutedOps(stmt.update, edits);
         findNestedFunctions(stmt.update, edits);
       }
       instrumentBody(stmt.body, edits, ITER_GUARD + opsIncrement(perIteration));
@@ -282,7 +341,7 @@ function instrumentStatement(stmt, edits) {
 
     case 'WhileStatement':
     case 'DoWhileStatement': {
-      const perIteration = countNodeOps(stmt.test);
+      const perIteration = countAlwaysExecutedOps(stmt.test, edits);
       findNestedFunctions(stmt.test, edits);
       instrumentBody(stmt.body, edits, ITER_GUARD + opsIncrement(perIteration));
       return;
@@ -290,7 +349,7 @@ function instrumentStatement(stmt, edits) {
 
     case 'ForInStatement':
     case 'ForOfStatement': {
-      const rightOps = opsIncrement(countNodeOps(stmt.right));
+      const rightOps = opsIncrement(countAlwaysExecutedOps(stmt.right, edits));
       if (rightOps) edits.push({ index: stmt.start, insert: rightOps });
       findNestedFunctions(stmt.right, edits);
       instrumentBody(stmt.body, edits, ITER_GUARD);
@@ -298,7 +357,7 @@ function instrumentStatement(stmt, edits) {
     }
 
     case 'SwitchStatement': {
-      const prefix = opsIncrement(countNodeOps(stmt.discriminant));
+      const prefix = opsIncrement(countAlwaysExecutedOps(stmt.discriminant, edits));
       if (prefix) edits.push({ index: stmt.start, insert: prefix });
       findNestedFunctions(stmt.discriminant, edits);
       for (const switchCase of stmt.cases) {
@@ -328,7 +387,7 @@ function instrumentStatement(stmt, edits) {
       // ExpressionStatement, VariableDeclaration, ReturnStatement,
       // ThrowStatement, and anything else that isn't a control structure:
       // count its own op-sites, then look for callbacks/closures inside.
-      const prefix = opsIncrement(countNodeOps(stmt));
+      const prefix = opsIncrement(countAlwaysExecutedOps(stmt, edits));
       if (prefix) edits.push({ index: stmt.start, insert: prefix });
       findNestedFunctions(stmt, edits);
     }
@@ -348,7 +407,7 @@ function instrumentFunctionBody(fnNode, edits) {
     return;
   }
 
-  const ops = countNodeOps(body);
+  const ops = countAlwaysExecutedOps(body, edits);
   if (ops > 0) {
     edits.push({ index: body.start, insert: `(${COUNTER_VAR}+=${ops},` });
     edits.push({ index: body.end, insert: ')' });
