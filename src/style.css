@@ -209,9 +209,18 @@ a {
 }
 
 @media (min-width: 1024px) {
+  /* Pin the app to exactly one viewport so .layout (a flex: 1 sibling of
+     the header) can fill the remaining height without hardcoding the
+     header's own height — no magic-number calc(100vh - Npx). */
+  #app {
+    height: 100vh;
+    min-height: 0;
+  }
+
   .layout {
+    flex: 1;
+    min-height: 0;
     flex-direction: row-reverse;
-    height: calc(100vh - 61px);
     overflow: hidden;
   }
 
