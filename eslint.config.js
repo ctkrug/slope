@@ -14,6 +14,8 @@ export default [
         Event: 'readonly',
         CustomEvent: 'readonly',
         KeyboardEvent: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
         requestAnimationFrame: 'readonly',
         cancelAnimationFrame: 'readonly',
         matchMedia: 'readonly',
