@@ -4,6 +4,7 @@ import {
   compileInstrumented,
   runInstrumented,
 } from '../src/core/dynamic-instrument.js';
+import { MAX_SIZE } from '../src/ui/size-picker.js';
 
 describe('runInstrumented', () => {
   it('returns the function result alongside its measured op count', () => {
@@ -210,6 +211,17 @@ describe('runInstrumented', () => {
       expect(err.kind).toBe('runtime');
       expect(err.message).not.toBe('');
     }
+  });
+
+  it('does not misclassify an ordinary O(n) loop at the largest allowed size as a runaway loop', () => {
+    // The size picker's MAX_SIZE and the default iteration cap are two
+    // independent safety limits — they need to stay compatible, or a
+    // perfectly correct linear scan at a UI-legal size gets rejected as
+    // "likely an infinite loop."
+    const src = 'function sum(arr) { let t = 0; for (let i = 0; i < arr.length; i++) { t += arr[i]; } return t; }';
+    const arr = new Array(MAX_SIZE).fill(1);
+    const { result } = runInstrumented(src, arr);
+    expect(result).toBe(MAX_SIZE);
   });
 
   it('trips the iteration cap on a runaway loop instead of hanging', () => {

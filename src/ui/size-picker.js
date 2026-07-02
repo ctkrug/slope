@@ -2,10 +2,13 @@
 // Typing a number and pressing Enter or "," adds a chip; each chip has its
 // own remove control. Kept sorted ascending and deduplicated.
 
-// A generator asked for an array this large would allocate hundreds of MB
-// and likely freeze the tab well before any measurement finishes — this
-// caps input against a typo (an extra zero) rather than a real use case.
-export const MAX_SIZE = 10_000_000;
+// Caps input against a typo (an extra zero) rather than a real use case.
+// Also kept comfortably under DEFAULT_MAX_ITERATIONS (2,000,000 in
+// dynamic-instrument.js): an ordinary O(n) loop at this size uses exactly
+// MAX_SIZE iterations of the shared __iter counter, so the ~2x margin
+// below the iteration cap keeps an ordinary linear scan from being
+// misclassified as a runaway loop.
+export const MAX_SIZE = 1_000_000;
 
 /** Parses one size entry. Returns a positive integer up to MAX_SIZE, or null if invalid. */
 export function parseSize(raw) {
