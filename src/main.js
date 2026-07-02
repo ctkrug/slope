@@ -123,8 +123,15 @@ function setFitLabel(text, { tone = 'neutral', shake = false } = {}) {
 }
 
 let lastRender = { samples: [], curveFn: null, regression: null };
+let revealTimer = null;
 
+// Selecting a new sample or re-clicking Measure while a previous reveal is
+// still staggering in would otherwise let both animations run at once,
+// double-ticking the sound and racing to render two different point counts.
 function revealSamples(samples, curveFn, regression) {
+  clearTimeout(revealTimer);
+  revealTimer = null;
+
   let revealCount = 0;
   function step() {
     revealCount += 1;
@@ -132,8 +139,9 @@ function revealSamples(samples, curveFn, regression) {
     plot.render(lastRender);
     if (userHasInteracted) sound.tick();
     if (revealCount < samples.length) {
-      setTimeout(step, REVEAL_STAGGER_MS);
+      revealTimer = setTimeout(step, REVEAL_STAGGER_MS);
     } else {
+      revealTimer = null;
       onRevealComplete(regression);
     }
   }
