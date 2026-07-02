@@ -1,8 +1,190 @@
+import { bestFitCurve, CURVES } from './core/curves.js';
+import { GENERATORS } from './core/generators.js';
+import { InstrumentationError } from './core/dynamic-instrument.js';
+import { detectRegression, measure } from './core/measure.js';
+import { SAMPLES } from './samples/library.js';
+import { createEditor } from './ui/editor.js';
+import { createSizePicker } from './ui/size-picker.js';
+import { createSampleLibrary } from './ui/sample-library.js';
+import { createGeneratorSelect } from './ui/generator-select.js';
+import { createPlot } from './ui/plot.js';
+import { createSoundController } from './ui/sound.js';
+import { renderWordmark } from './ui/wordmark.js';
+
+const DEFAULT_SAMPLE = SAMPLES[0];
+const REVEAL_STAGGER_MS = 40;
+
 const app = document.getElementById('app');
 
 app.innerHTML = `
-  <main>
-    <h1>Big-O Playground</h1>
-    <p>Paste a function, measure it, see what it really is.</p>
+  <header class="app__header">
+    ${renderWordmark()}
+    <div class="app__header-right">
+      <p class="app__tagline">Measure it. Don't guess it.</p>
+      <button type="button" class="mute-toggle" aria-pressed="false" aria-label="Mute sound">🔊</button>
+    </div>
+  </header>
+  <main class="layout">
+    <section class="plot-section" aria-label="Measured operation count plot">
+      <div class="plot-canvas-wrap">
+        <canvas class="plot-canvas"></canvas>
+      </div>
+      <p class="fit-label" aria-live="polite"></p>
+    </section>
+    <section class="rail" aria-label="Function input and controls">
+      <div class="panel editor-panel"></div>
+      <div class="panel generator-panel"></div>
+      <div class="panel size-picker-panel"></div>
+      <button type="button" class="measure-button">Measure</button>
+      <div class="panel sample-library-panel"></div>
+    </section>
   </main>
 `;
+
+const canvas = app.querySelector('.plot-canvas');
+const fitLabel = app.querySelector('.fit-label');
+const muteToggle = app.querySelector('.mute-toggle');
+const measureButton = app.querySelector('.measure-button');
+
+const sound = createSoundController();
+const plot = createPlot(canvas);
+
+const state = {
+  source: DEFAULT_SAMPLE.source,
+  generator: DEFAULT_SAMPLE.generator,
+  sizes: DEFAULT_SAMPLE.sizes,
+};
+
+const editor = createEditor(app.querySelector('.editor-panel'), {
+  initialSource: state.source,
+  onChange: (value) => {
+    state.source = value;
+    editor.setError(null);
+  },
+});
+
+const generatorSelect = createGeneratorSelect(app.querySelector('.generator-panel'), {
+  initialValue: state.generator,
+  onChange: (value) => {
+    state.generator = value;
+  },
+});
+
+const sizePicker = createSizePicker(app.querySelector('.size-picker-panel'), {
+  initialSizes: state.sizes,
+  onChange: (sizes) => {
+    state.sizes = sizes;
+  },
+});
+
+createSampleLibrary(app.querySelector('.sample-library-panel'), {
+  onSelect: (sample) => {
+    state.source = sample.source;
+    state.generator = sample.generator;
+    state.sizes = sample.sizes;
+    editor.setValue(sample.source);
+    editor.setError(null);
+    generatorSelect.setValue(sample.generator);
+    sizePicker.setSizes(sample.sizes);
+    runMeasurement();
+  },
+});
+
+function updateMuteButton() {
+  const muted = sound.isMuted();
+  muteToggle.setAttribute('aria-pressed', String(muted));
+  muteToggle.textContent = muted ? '🔇' : '🔊';
+  muteToggle.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
+}
+
+muteToggle.addEventListener('click', () => {
+  sound.toggleMuted();
+  updateMuteButton();
+});
+updateMuteButton();
+
+function setFitLabel(text, { tone = 'neutral', shake = false } = {}) {
+  fitLabel.textContent = text;
+  fitLabel.classList.remove('fit-label--danger', 'fit-label--success', 'fit-label--shake');
+  if (tone === 'danger') fitLabel.classList.add('fit-label--danger');
+  if (tone === 'success') fitLabel.classList.add('fit-label--success');
+  if (shake) {
+    // Force a reflow so the animation re-triggers on repeated regressions.
+    void fitLabel.offsetWidth;
+    fitLabel.classList.add('fit-label--shake');
+  }
+}
+
+let lastRender = { samples: [], curveFn: null, regression: null };
+
+function revealSamples(samples, curveFn, regression) {
+  let revealCount = 0;
+  function step() {
+    revealCount += 1;
+    lastRender = { samples, curveFn, revealCount, regression };
+    plot.render(lastRender);
+    sound.tick();
+    if (revealCount < samples.length) {
+      setTimeout(step, REVEAL_STAGGER_MS);
+    } else {
+      onRevealComplete(regression);
+    }
+  }
+  step();
+}
+
+function onRevealComplete(regression) {
+  if (regression.regressed) {
+    sound.regressionBlip();
+  } else {
+    sound.matchChime();
+  }
+}
+
+function runMeasurement() {
+  const generate = GENERATORS[state.generator];
+  editor.setError(null);
+
+  let samples;
+  try {
+    samples = measure(state.source, state.sizes, generate);
+  } catch (err) {
+    if (err instanceof InstrumentationError) {
+      editor.setError(err.message);
+      setFitLabel('Fix the error above to measure this function.', { tone: 'danger' });
+      plot.render({ samples: [] });
+    } else {
+      throw err;
+    }
+    return;
+  }
+
+  const { name: curveName } = bestFitCurve(samples);
+  const regression = detectRegression(samples);
+  const curveFn = curveName ? CURVES[curveName] : null;
+
+  if (regression.regressed) {
+    setFitLabel(
+      `looks ${regression.earlyCurve}, diverges to ${regression.overallCurve} after n=${regression.divergesAfter}`,
+      { tone: 'danger', shake: true }
+    );
+  } else {
+    setFitLabel(`closest match: ${curveName}`, { tone: 'success' });
+  }
+
+  revealSamples(samples, curveFn, regression);
+}
+
+measureButton.addEventListener('click', runMeasurement);
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    plot.resize();
+    plot.render(lastRender);
+  }, 100);
+});
+
+plot.resize();
+runMeasurement();
