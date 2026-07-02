@@ -107,6 +107,8 @@ export function applyEdits(text, edits) {
 const COUNTER_VAR = '__ops';
 const ITER_VAR = '__iter';
 const ITER_CAP_VAR = '__iterCap';
+const RESERVED_IDENTIFIERS = [COUNTER_VAR, ITER_VAR, ITER_CAP_VAR];
+const RESERVED_IDENTIFIER_PATTERN = new RegExp(`\\b(${RESERVED_IDENTIFIERS.join('|')})\\b`);
 
 function opsIncrement(count) {
   return count > 0 ? `${COUNTER_VAR}+=${count};` : '';
@@ -284,6 +286,13 @@ function instrumentFunctionBody(fnNode, edits) {
  * a single function expression, ready to be compiled and run.
  */
 export function instrumentSource(source) {
+  if (RESERVED_IDENTIFIER_PATTERN.test(source)) {
+    throw new SyntaxError(
+      `${RESERVED_IDENTIFIERS.join(', ')} are reserved for the instrumentation engine itself — ` +
+        'rename any variable using one of those names in your pasted function.'
+    );
+  }
+
   const wrapped = `(${source})`;
   const ast = parseFunction(source);
   const fnNode = ast.body[0].expression;

@@ -117,6 +117,37 @@ describe('runInstrumented', () => {
     expect(result).toBe(15);
   });
 
+  it('rejects source that shadows the instrumentation engine\'s own __ops counter', () => {
+    // Without this guard, a local `let __ops = ...` shadows the injected
+    // counter for the rest of that scope: the reported op count silently
+    // reads back as 0, and the pasted function's own return value is
+    // corrupted too, since every injected `__ops += N` mutates the user's
+    // variable instead of the real counter.
+    try {
+      runInstrumented('function f(n) { let __ops = 100; return __ops + n; }', 6);
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(InstrumentationError);
+      expect(err.kind).toBe('parse');
+      expect(err.message).toMatch(/__ops/);
+    }
+  });
+
+  it('rejects source that shadows the __iter or __iterCap iteration-cap variables', () => {
+    expect(() => runInstrumented('function f(n) { let __iter = 0; return n; }', 6)).toThrow(
+      InstrumentationError
+    );
+    expect(() => runInstrumented('function f(n) { let __iterCap = 0; return n; }', 6)).toThrow(
+      InstrumentationError
+    );
+  });
+
+  it('does not false-positive on ordinary names that merely contain "ops"', () => {
+    const { result, ops } = runInstrumented('function f(n) { let opsCounter = 5; return opsCounter + n; }', 6);
+    expect(result).toBe(11);
+    expect(ops).toBeGreaterThan(0);
+  });
+
   it('rejects a generator function instead of silently measuring zero ops', () => {
     try {
       runInstrumented('function* f(arr) { for (const x of arr) yield x; }', [1, 2, 3]);
