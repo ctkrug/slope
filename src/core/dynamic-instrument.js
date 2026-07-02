@@ -291,6 +291,18 @@ export function instrumentSource(source) {
   if (!isFunctionNode(fnNode)) {
     throw new SyntaxError('Source must be a single function expression, arrow function, or declaration.');
   }
+  if (fnNode.generator) {
+    throw new SyntaxError(
+      "Generator functions aren't supported — their body only runs as its iterator is " +
+        'consumed, so measuring them here would always report zero operations.'
+    );
+  }
+  if (fnNode.async) {
+    throw new SyntaxError(
+      "Async functions aren't supported — measurement reads the operation count as soon as " +
+        'the function returns, before any awaited work resolves.'
+    );
+  }
 
   const edits = [];
   instrumentFunctionBody(fnNode, edits);

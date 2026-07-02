@@ -117,6 +117,28 @@ describe('runInstrumented', () => {
     expect(result).toBe(15);
   });
 
+  it('rejects a generator function instead of silently measuring zero ops', () => {
+    try {
+      runInstrumented('function* f(arr) { for (const x of arr) yield x; }', [1, 2, 3]);
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(InstrumentationError);
+      expect(err.kind).toBe('parse');
+      expect(err.message).toMatch(/generator/i);
+    }
+  });
+
+  it('rejects an async function instead of measuring only its pre-await ops', () => {
+    try {
+      runInstrumented('async function f(x) { return x + 1; }', 5);
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(InstrumentationError);
+      expect(err.kind).toBe('parse');
+      expect(err.message).toMatch(/async/i);
+    }
+  });
+
   it('surfaces a parse failure as an InstrumentationError of kind parse', () => {
     expect(() => runInstrumented('function( {{{', 1)).toThrow(InstrumentationError);
     try {
