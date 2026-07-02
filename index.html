@@ -20,6 +20,95 @@
   </head>
   <body>
     <div id="app"></div>
+
+    <section class="about" aria-label="About Slope">
+      <div class="about__inner">
+        <h2 class="about__title">What Slope does</h2>
+        <p>
+          Slope measures the real time complexity of a JavaScript function instead of
+          asking you to eyeball it. Paste a function, choose a few input sizes, and Slope
+          runs it at each size while counting the primitive operations it actually
+          executes: comparisons, arithmetic, property reads, and calls. It plots those
+          counts on a log-log graph next to the standard Big-O reference curves, so you can
+          read which curve your code really follows. Because it counts operations instead
+          of timing the clock, the same function draws the same graph on any machine, with
+          no JIT warm-up or garbage-collection noise to muddy the result.
+        </p>
+
+        <h2 class="about__title">How to use it</h2>
+        <ol class="about__steps">
+          <li>
+            Paste a single-argument function into the editor, or load a sample: binary
+            search, bubble sort, memoized Fibonacci, and two functions that hide a
+            quadratic.
+          </li>
+          <li>
+            Pick an input generator that matches what your function expects: a random,
+            sorted, or reverse-sorted array, a string, a nested array, or a plain number
+            for recursive routines.
+          </li>
+          <li>
+            Add the input sizes to measure at. A wide spread like 100, 1000, 10000 makes
+            the growth curve easier to read.
+          </li>
+          <li>
+            Press Measure. The points animate in, Slope names the closest-matching curve,
+            and it flags the exact size where a function that started out cheap turns
+            quadratic.
+          </li>
+        </ol>
+
+        <h2 class="about__title">FAQ</h2>
+        <dl class="about__faq">
+          <dt>Does Slope run my code on a server?</dt>
+          <dd>
+            No. Your function runs entirely in your own browser tab. Nothing is uploaded,
+            and there is no backend executing pasted code.
+          </dd>
+
+          <dt>Why count operations instead of timing?</dt>
+          <dd>
+            Wall-clock timing depends on the machine, JIT warm-up, and garbage collection,
+            so the same function can look linear on one run and jagged on the next. Counting
+            the operations a function executes is deterministic, so the measured curve
+            reflects the algorithm, not the hardware.
+          </dd>
+
+          <dt>Which functions work best?</dt>
+          <dd>
+            Pure, single-argument functions over arrays, strings, or numbers: searches,
+            sorts, and recursive routines. Give recursive numeric functions the "n (number)"
+            generator so they receive a size rather than an array.
+          </dd>
+
+          <dt>Why does a function using .sort() or .includes() look off?</dt>
+          <dd>
+            Slope only counts operations inside the code you paste. A built-in like .sort()
+            or .includes() counts as a single call, because its internals are native and not
+            instrumented. Write the loop out explicitly if you want its cost measured.
+          </dd>
+
+          <dt>What does "diverges to O(n²) starting at n=..." mean?</dt>
+          <dd>
+            Some functions stay fast until an input crosses a threshold, then fall back to a
+            slower path. Slope compares the curve fitting the early sizes against the full
+            range and flags the size where the growth changes class, which is the moment a
+            "looks O(n)" function is really O(n²).
+          </dd>
+        </dl>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <a href="https://github.com/ctkrug/big-o-playground" target="_blank" rel="noopener"
+        >Source on GitHub</a
+      >
+      <span class="site-footer__sep" aria-hidden="true">·</span>
+      <a href="https://apps.charliekrug.com" target="_blank" rel="noopener"
+        >More by Charlie Krug → apps.charliekrug.com</a
+      >
+    </footer>
+
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
