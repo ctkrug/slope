@@ -19,6 +19,11 @@ describe('measure', () => {
     expect(samples[1].ops).toBeLessThan(samples[2].ops);
   });
 
+  it('returns an empty sample list for an empty sizes array', () => {
+    const source = '(arr) => arr.length';
+    expect(measure(source, [], () => null)).toEqual([]);
+  });
+
   it('annotates a thrown InstrumentationError with the failing size', () => {
     const source = '() => { throw new Error("nope"); }';
     try {

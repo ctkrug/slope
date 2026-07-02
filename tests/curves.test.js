@@ -41,4 +41,8 @@ describe('bestFitCurve', () => {
     const { name } = bestFitCurve(samples);
     expect(name).toBe('O(1)');
   });
+
+  it('returns no winner and an infinite error for an empty sample list', () => {
+    expect(bestFitCurve([])).toEqual({ name: null, error: Infinity });
+  });
 });
