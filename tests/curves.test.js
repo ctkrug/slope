@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { CURVES, bestFitCurve, fitError, normalizeCurve, pickAnchor } from '../src/core/curves.js';
 
+describe('CURVES ordering', () => {
+  it('is declared in strictly increasing growth order at a representative n', () => {
+    // measure.js derives its worse-than/better-than comparisons for
+    // detectRegression from Object.keys(CURVES)' insertion order, not from
+    // any explicit rank field — reordering or inserting a curve here would
+    // silently break regression detection without touching measure.js at
+    // all. Pin the invariant down here instead.
+    const n = 1000;
+    const values = Object.values(CURVES).map((curveFn) => curveFn(n));
+    for (let i = 1; i < values.length; i += 1) {
+      expect(values[i]).toBeGreaterThan(values[i - 1]);
+    }
+  });
+});
+
 describe('normalizeCurve', () => {
   it('scales a curve to pass through the given anchor point', () => {
     const linear = normalizeCurve(CURVES['O(n)'], 10, 50);
