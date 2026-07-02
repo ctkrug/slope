@@ -114,8 +114,11 @@ only module that wires them together.
   an inline parse/runtime error and reddens the border.
 - **`size-picker.js`** — chip/tag input for the `n` values to test;
   `parseSize` is the pure validation function (positive integers only, up
-  to `MAX_SIZE` = 10,000,000, so a typo'd extra zero can't ask a generator
-  to allocate an array that freezes the tab).
+  to `MAX_SIZE` = 1,000,000, so a typo'd extra zero can't ask a generator
+  to allocate an array that freezes the tab). Also kept below
+  `dynamic-instrument.js`'s `DEFAULT_MAX_ITERATIONS` (2,000,000) so an
+  ordinary O(n) loop at the largest allowed size can't itself trip the
+  iteration-cap guard and get misclassified as a runaway loop.
 - **`generator-select.js`** — themed `<select>` over `GENERATORS`.
 - **`sample-library.js`** — one button per `SAMPLES` entry.
 - **`plot.js`** — the canvas renderer:
