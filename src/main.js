@@ -48,6 +48,11 @@ const measureButton = app.querySelector('.measure-button');
 
 const sound = createSoundController();
 const plot = createPlot(canvas);
+// The AudioContext must only ever be created in response to a user
+// gesture (browser autoplay policy, and docs/DESIGN.md's own rule) — the
+// very first render on page load is automatic, not user-initiated, so it
+// stays silent until the user actually clicks something.
+let userHasInteracted = false;
 
 const state = {
   source: DEFAULT_SAMPLE.source,
@@ -86,6 +91,7 @@ createSampleLibrary(app.querySelector('.sample-library-panel'), {
     editor.setError(null);
     generatorSelect.setValue(sample.generator);
     sizePicker.setSizes(sample.sizes);
+    userHasInteracted = true;
     runMeasurement();
   },
 });
@@ -98,6 +104,7 @@ function updateMuteButton() {
 }
 
 muteToggle.addEventListener('click', () => {
+  userHasInteracted = true;
   sound.toggleMuted();
   updateMuteButton();
 });
@@ -123,7 +130,7 @@ function revealSamples(samples, curveFn, regression) {
     revealCount += 1;
     lastRender = { samples, curveFn, revealCount, regression };
     plot.render(lastRender);
-    sound.tick();
+    if (userHasInteracted) sound.tick();
     if (revealCount < samples.length) {
       setTimeout(step, REVEAL_STAGGER_MS);
     } else {
@@ -134,6 +141,7 @@ function revealSamples(samples, curveFn, regression) {
 }
 
 function onRevealComplete(regression) {
+  if (!userHasInteracted) return;
   if (regression.regressed) {
     sound.regressionBlip();
   } else {
@@ -175,7 +183,10 @@ function runMeasurement() {
   revealSamples(samples, curveFn, regression);
 }
 
-measureButton.addEventListener('click', runMeasurement);
+measureButton.addEventListener('click', () => {
+  userHasInteracted = true;
+  runMeasurement();
+});
 
 let resizeTimer = null;
 window.addEventListener('resize', () => {
