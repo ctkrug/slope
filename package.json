@@ -1,6 +1,7 @@
 {
   "name": "big-o-playground",
   "version": "0.1.0",
+  "private": true,
   "description": "Paste a function, watch its measured operation count plotted live against the Big-O curve it's supposed to match.",
   "type": "module",
   "license": "MIT",
