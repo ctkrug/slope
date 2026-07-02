@@ -3,10 +3,10 @@ import { simple as walkSimple } from 'acorn-walk';
 
 // Node types counted as one "primitive operation" apiece. This is the
 // static building block for the instrumentation engine: it tells you how
-// many op-sites exist in the source. The dynamic version (BACKLOG: runs
-// the function against real inputs and counts operations as they actually
-// execute, so a loop body's cost scales with iterations) builds on top of
-// this AST walk rather than replacing it.
+// many op-sites exist in the source. The dynamic counter in
+// `dynamic-instrument.js` (which runs the function against real inputs and
+// counts operations as they actually execute, so a loop body's cost scales
+// with iterations) builds on top of this AST walk rather than replacing it.
 const COUNTED_NODE_TYPES = new Set([
   'BinaryExpression',
   'LogicalExpression',
