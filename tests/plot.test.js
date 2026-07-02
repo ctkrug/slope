@@ -109,4 +109,12 @@ describe('createPlot', () => {
     expect(ctx.setTransform).toHaveBeenCalledWith(2, 0, 0, 2, 0, 0);
     vi.unstubAllGlobals();
   });
+
+  it('does not throw when the canvas has no 2D context available', () => {
+    const canvas = document.createElement('canvas');
+    canvas.getContext = () => null;
+    const plot = createPlot(canvas);
+    expect(() => plot.resize()).not.toThrow();
+    expect(() => plot.render({ samples: [{ n: 10, ops: 5 }] })).not.toThrow();
+  });
 });

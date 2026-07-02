@@ -152,9 +152,10 @@ function drawEmptyState(ctx, width, height) {
  * redraws the grid, curve overlay, and revealed points.
  */
 export function createPlot(canvas) {
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext && canvas.getContext('2d');
 
   function resize() {
+    if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(1, rect.width);
@@ -165,6 +166,7 @@ export function createPlot(canvas) {
   }
 
   function render({ samples = [], curveFn = null, revealCount = samples.length, regression = null } = {}) {
+    if (!ctx) return;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(1, rect.width);
     const height = Math.max(1, rect.height);
