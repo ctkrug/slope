@@ -70,6 +70,23 @@ describe('createSoundController', () => {
     expect(() => sound.regressionBlip()).not.toThrow();
   });
 
+  it('defaults to unmuted and does not throw when localStorage access fails', () => {
+    const original = window.localStorage;
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('localStorage disabled (private mode)');
+      },
+    });
+    try {
+      const sound = createSoundController();
+      expect(sound.isMuted()).toBe(false);
+      expect(() => sound.toggleMuted()).not.toThrow();
+    } finally {
+      Object.defineProperty(window, 'localStorage', { configurable: true, value: original });
+    }
+  });
+
   it('does not play a tone at all while muted', () => {
     const sound = createSoundController();
     sound.setMuted(true);
