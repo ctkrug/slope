@@ -127,7 +127,10 @@ generator(n) ──┘   generating a fresh input each time
     flags when the later samples have grown into a worse complexity
     class, and reports the size at which that divergence starts.
   - `analyzeRun(...)` → samples + best-fit curve + regression verdict in
-    one call — the function the UI calls per "Measure" click.
+    one call. A convenience wrapper for programmatic/tested use; `main.js`
+    deliberately calls `measure()` first and inspects the sample count
+    before fitting, so it can skip the meaningless single-sample "fit"
+    rather than take the combined result blindly.
 
 ## Samples (`src/samples/`)
 
