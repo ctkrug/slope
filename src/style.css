@@ -371,3 +371,46 @@ a {
   color: var(--danger);
   font-size: 0.8125rem;
 }
+
+/* Sample library */
+.sample-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sample-button {
+  appearance: none;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--grid-line);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-2);
+  min-height: 44px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: border-color var(--motion-ui), transform var(--motion-ui), background var(--motion-ui);
+}
+
+.sample-button:hover,
+.sample-button:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface-1);
+}
+
+.sample-button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.sample-button__name {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.sample-button__description {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
