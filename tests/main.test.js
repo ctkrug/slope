@@ -20,7 +20,7 @@ describe('main entrypoint', () => {
     await import('../src/main.js');
     const app = document.getElementById('app');
     const h1 = app.querySelector('h1');
-    expect(h1.textContent.trim().replace(/\s+/g, ' ')).toBe('Big-O Playground');
+    expect(h1.textContent.trim().replace(/\s+/g, ' ')).toBe('Slope');
   });
 
   it('renders the function editor, size picker, and sample library', async () => {

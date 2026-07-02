@@ -20,7 +20,7 @@ app.innerHTML = `
   <header class="app__header">
     ${renderWordmark()}
     <div class="app__header-right">
-      <p class="app__tagline">Measure it. Don't guess it.</p>
+      <p class="app__tagline">Big-O, measured not guessed.</p>
       <button type="button" class="mute-toggle" aria-pressed="false" aria-label="Mute sound">🔊</button>
     </div>
   </header>

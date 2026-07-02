@@ -2,7 +2,7 @@
 
 ## Aesthetic direction
 
-**Blueprint/technical.** Big-O Playground looks like an engineer's measurement instrument, not
+**Blueprint/technical.** Slope looks like an engineer's measurement instrument, not
 a dashboard: a deep blueprint-blue canvas with fine graph-paper gridlines, precise hairline
 strokes for curves, and monospaced annotations that read like plotter output. The personality
 is *precision instrument*, not *SaaS product* — every number on screen looks measured, not
@@ -45,10 +45,10 @@ the input controls below it, scrollable. No dead space: the plot always fills it
 
 ## Signature detail
 
-The wordmark **"Big-O Playground"** renders in JetBrains Mono with the "O" replaced by an
-animated hairline circle that traces itself once on page load (like a plotter drawing a
-reference curve) — a small, specific flourish that previews what the tool does before the user
-touches anything.
+The wordmark **"Slope"** renders in JetBrains Mono with its "o" (which stands in for the O of
+Big-O) drawn as an animated hairline circle that traces itself once on page load, like a
+plotter drawing a reference curve. A small, specific flourish that previews what the tool does
+before the user touches anything.
 
 ## Juice plan (interaction feedback, not a game but still needs to feel alive)
 

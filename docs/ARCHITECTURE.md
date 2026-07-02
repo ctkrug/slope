@@ -177,8 +177,9 @@ only module that wires them together.
   responsible for never calling these before a real user gesture** (a
   `userHasInteracted` flag gates the automatic first render on page load)
   — the module itself doesn't know whether a call is gesture-triggered.
-- **`wordmark.js`** — the animated "Big-O Playground" heading; the trace
-  animation is a `<circle>` overlay driven by a CSS keyframe, not JS.
+- **`wordmark.js`** — the animated "Slope" heading; the "o" (which doubles
+  as the O of Big-O) is traced by a `<circle>` overlay driven by a CSS
+  keyframe, not JS.
 
 ## `main.js` — orchestration
 
