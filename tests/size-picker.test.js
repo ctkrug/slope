@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { createSizePicker, parseSize } from '../src/ui/size-picker.js';
+import { MAX_SIZE, createSizePicker, parseSize } from '../src/ui/size-picker.js';
 
 describe('parseSize', () => {
   it('parses a positive integer string', () => {
@@ -13,6 +13,11 @@ describe('parseSize', () => {
     expect(parseSize('1.5')).toBeNull();
     expect(parseSize('abc')).toBeNull();
     expect(parseSize('')).toBeNull();
+  });
+
+  it('accepts MAX_SIZE but rejects anything above it', () => {
+    expect(parseSize(String(MAX_SIZE))).toBe(MAX_SIZE);
+    expect(parseSize(String(MAX_SIZE + 1))).toBeNull();
   });
 });
 

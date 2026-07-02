@@ -2,12 +2,17 @@
 // Typing a number and pressing Enter or "," adds a chip; each chip has its
 // own remove control. Kept sorted ascending and deduplicated.
 
-/** Parses one size entry. Returns a positive integer, or null if invalid. */
+// A generator asked for an array this large would allocate hundreds of MB
+// and likely freeze the tab well before any measurement finishes — this
+// caps input against a typo (an extra zero) rather than a real use case.
+export const MAX_SIZE = 10_000_000;
+
+/** Parses one size entry. Returns a positive integer up to MAX_SIZE, or null if invalid. */
 export function parseSize(raw) {
   const trimmed = String(raw).trim();
   if (!/^\d+$/.test(trimmed)) return null;
   const value = Number(trimmed);
-  if (!Number.isSafeInteger(value) || value <= 0) return null;
+  if (!Number.isSafeInteger(value) || value <= 0 || value > MAX_SIZE) return null;
   return value;
 }
 
@@ -67,7 +72,9 @@ export function createSizePicker(container, { initialSizes = [], onChange } = {}
   function addFromInput() {
     const value = parseSize(input.value);
     if (value === null) {
-      if (input.value.trim() !== '') showError('Sizes must be positive whole numbers.');
+      if (input.value.trim() !== '') {
+        showError(`Sizes must be positive whole numbers up to ${MAX_SIZE.toLocaleString()}.`);
+      }
       return;
     }
     showError(null);
