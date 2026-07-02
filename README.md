@@ -37,8 +37,9 @@ so you can see which curve the measured growth actually tracks.
   data points suggested (the "secretly O(n²)" moment), naming the exact size it starts at.
 - **Input generators** — random array, sorted array, reverse-sorted array, random string,
   nested array, and a plain numeric `n` for recursive numeric functions.
-- **Sample library** — one-click presets: binary search, bubble sort, memoized Fibonacci, and a
-  "looks linear, secretly O(n²)" trap.
+- **Sample library** — one-click presets: binary search, bubble sort, memoized Fibonacci, a
+  "looks linear, secretly O(n²)" trap, and a threshold-based fallback that actually triggers
+  live regression detection.
 - **Blueprint/technical UI** — a log-log canvas plot as the hero, synth SFX (WebAudio,
   zero audio files) with a persisted mute toggle, and a responsive layout from phone to desktop.
 
