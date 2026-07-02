@@ -1,84 +1,114 @@
-# Big-O Playground
+# Slope
 
-Paste a function. Pick input sizes. Watch its **measured operation count** plotted live
-against the Big-O curve it's supposed to match — and instantly see where an "obviously
-O(n log n)" function secretly regresses to O(n²).
+**▶ Live demo: [apps.charliekrug.com/big-o-playground](https://apps.charliekrug.com/big-o-playground/)**
+
+[![CI](https://github.com/ctkrug/big-o-playground/actions/workflows/ci.yml/badge.svg)](https://github.com/ctkrug/big-o-playground/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> Catch the O(n²) hiding in your code.
+
+Slope measures the real time complexity of a JavaScript function instead of asking you to
+eyeball it. Paste a function, pick a few input sizes, and watch its measured operation count
+plotted live against the Big-O curve it is supposed to match. It is built for the two moments
+where a wrong guess costs you: proving an interview solution really beats brute force, and
+reviewing a PR that claims a nested loop over a sorted array is "now O(n)."
 
 ## Why
 
-Asymptotic complexity gets hand-waved constantly — in interviews, in code review, in your
-own head six months after you wrote the code. "Looks like O(n log n) to me" is a guess.
-Big-O Playground replaces the guess with a measurement: it actually runs your function at
-several input sizes, counts real operations as it executes, and fits the result against the
-standard complexity curves so the gap between *claimed* and *actual* is visible, not assumed.
-
-This is aimed at two moments: prepping for a coding interview (does my "clever" solution
-really beat the brute force?) and reviewing someone else's PR (does this nested loop over
-a sorted array actually hide an O(n²) in the middle of an "optimized" function?).
+Big-O is supposed to be a measurement, but in practice it is almost always a guess. You read a
+function, trace the loops in your head, and declare "that's O(n log n)" without ever running it.
+That guess is usually right for the happy path and quietly wrong for the case that matters: the
+`.includes()` buried in what looks like a linear scan, the memoization that is not keyed
+correctly, the fallback that scans everything once the input crosses a threshold. Slope replaces
+the guess with a number.
 
 ## How it works
 
-Naive timing-based benchmarks are noisy and machine-dependent. Big-O Playground instead
-**instruments** your code: it parses the pasted function into an AST, walks it with a
-lightweight interpreter shim, and counts primitive operations (comparisons, arithmetic,
-array/object accesses, function calls) as the function actually executes — not lines of
-code, not guessed loop bounds. Those counts, taken across a range of input sizes you choose,
-get plotted alongside reference curves (O(1), O(log n), O(n), O(n log n), O(n²), O(2ⁿ), ...)
-so you can see which curve the measured growth actually tracks.
+Timing-based benchmarks are noisy and machine-dependent. Slope **instruments** your code
+instead: it parses the pasted function into an AST, splices operation counters directly into the
+source, and counts primitive operations (comparisons, arithmetic, array and object access, and
+calls) as the function actually executes against each input. Those counts are deterministic, so
+the same function draws the same curve on your laptop and on a CI runner. They get plotted on a
+log-log graph next to reference curves (O(1), O(log n), O(n), O(n log n), O(n²), O(n³), O(2ⁿ)),
+each normalized to the measured series so the *shape* of growth is what gets compared, not an
+arbitrary scale.
 
 ## Features
 
-- **Live instrumentation** — paste a JS function, run it against generated inputs at sizes you
-  pick, and count real primitive operations via a source-splicing AST walker (no `eval`-and-hope
-  timing). Loop bodies carry an iteration cap so a runaway paste throws instead of hanging the tab.
-- **Reference curve overlay** — the measured op-count series plots against a normalized Big-O
-  reference curve, with the best-fit curve named live.
-- **Regression detection** — flags when the measured growth diverges from the curve the early
-  data points suggested (the "secretly O(n²)" moment), naming the exact size it starts at.
-- **Input generators** — random array, sorted array, reverse-sorted array, random string,
-  nested array, and a plain numeric `n` for recursive numeric functions.
-- **Sample library** — one-click presets: binary search, bubble sort, memoized Fibonacci, a
-  "looks linear, secretly O(n²)" trap, and a threshold-based fallback that actually triggers
-  live regression detection.
-- **Blueprint/technical UI** — a log-log canvas plot as the hero, synth SFX (WebAudio,
-  zero audio files) with a persisted mute toggle, and a responsive layout from phone to desktop.
+- **Real instrumentation, not timing.** A source-splicing AST walker counts operations as they
+  execute, so a loop body's cost scales with iterations and recursive calls accumulate across the
+  stack. A per-iteration cap makes a runaway paste throw instead of hanging the tab.
+- **Branch-aware counting.** A ternary counts only the arm that runs, and `&&` / `||` / `??`
+  count only the operands that are actually evaluated, so short-circuits do not inflate the count.
+- **Regression detection.** When measured growth diverges from the curve the early points
+  suggested, Slope flags the exact input size where a "looks O(n)" function turns O(n²).
+- **Six input generators.** Random, sorted, and reverse-sorted arrays; random strings; nested
+  arrays; and a plain number for recursive numeric functions.
+- **Sample library.** One-click presets: binary search, bubble sort, memoized Fibonacci, a
+  "looks linear, secretly O(n²)" trap, and a threshold fallback that actually trips the live
+  regression detector.
+- **Blueprint UI.** A log-log canvas plot as the hero, synthesized WebAudio SFX with a persisted
+  mute toggle, and a layout that holds from phone to desktop.
+
+## Sample output
+
+Load the samples and press Measure. Slope reports the closest-matching curve, or the point of
+divergence when the growth changes class partway through:
+
+```
+Binary search                    closest match: O(log n)
+Bubble sort                      closest match: O(n^2)
+Memoized Fibonacci               closest match: O(n)
+Looks linear, secretly O(n^2)    closest match: O(n^2)
+Fast, until a fallback kicks in  looks O(n), diverges to O(n^2) starting at n=300
+```
 
 ## Getting started
 
-```
+```sh
 npm install
 npm run dev      # dev server
-npm test         # vitest
-npm run build    # static production build to dist/
+npm test         # vitest (144 tests)
+npm run build    # static production build to site/
 ```
 
-Paste a function into the editor (or pick a sample), choose input sizes, and press **Measure**.
-Functions take a single argument — the generated input for that size — so a two-argument
-function like `(a, b) => a + b` won't work as pasted; adapt it to `(arr) => arr[0] + arr[1]`
-or similar. Recursive numeric functions (Fibonacci, factorial) should use the **n (number)**
-generator so they receive a plain size instead of an array.
+Paste a function into the editor (or pick a sample), choose input sizes, and press **Measure**
+(or ⌘/Ctrl + Enter). Functions take a single argument, the generated input for that size, so a
+two-argument function like `(a, b) => a + b` will not work as pasted; adapt it to
+`(arr) => arr[0] + arr[1]`. Give recursive numeric functions (Fibonacci, factorial) the
+**n (number)** generator so they receive a plain size instead of an array.
+
+One deliberate limitation: Slope counts operations inside the code you paste, so a native
+built-in like `.sort()` or `.includes()` counts as a single call rather than by its internal
+cost. Write the loop out explicitly when you want its growth measured. This is why the
+"secretly O(n²)" sample uses an explicit nested loop.
 
 ## Stack
 
-A static, client-side-only web app — no backend, no server-side execution of pasted code:
+A static, client-side-only web app. Pasted code runs only in your own browser tab, never on a
+server:
 
-- **Vite** for dev server and static production build.
-- **Vanilla JavaScript** (no framework) for the UI — a data-viz tool doesn't need one.
-- **Acorn** for parsing pasted functions into an AST for instrumentation.
-- **Vitest** for unit tests of the instrumentation engine and the curve-fitting logic.
-- **Canvas** (2D context) for the live plot, sized to the device pixel ratio.
+- **Vanilla JavaScript**, no framework. A paste box, a size picker, and a canvas plot do not need
+  one.
+- **[Acorn](https://github.com/acornjs/acorn)** to parse pasted functions into an AST for
+  instrumentation.
+- **Canvas 2D** for the live log-log plot, sized to the device pixel ratio.
+- **[Vite](https://vitejs.dev/)** for the dev server and the static build; **[Vitest](https://vitest.dev/)**
+  for the test suite.
 
-Ships as a single static `dist/` directory — deployable to any static host, including as a
-subpath (`/big-o-playground/`) via relative asset paths.
+The build is a single static `site/` directory with relative asset paths, so it deploys to any
+host, including under a subpath.
 
-## Status
+## Docs
 
-Core instrumentation, measurement, and UI are functionally complete — see
-[`docs/VISION.md`](docs/VISION.md) for the full design,
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a map of the codebase, and
-[`docs/BACKLOG.md`](docs/BACKLOG.md) for what's left (URL-sharing and the standalone landing
-page are the remaining epics).
+- [`docs/VISION.md`](docs/VISION.md): the problem and the design decisions behind it.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): a module-by-module map of the codebase.
+- [`docs/DESIGN.md`](docs/DESIGN.md): the visual direction, tokens, and motion.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](LICENSE).
+
+More of Charlie's projects → https://apps.charliekrug.com
+</content>
+</invoke>
