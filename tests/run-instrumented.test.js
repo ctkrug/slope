@@ -50,6 +50,73 @@ describe('runInstrumented', () => {
     expect(second.ops).toBeLessThan(first.ops);
   });
 
+  it('only instruments the case actually taken in a switch statement', () => {
+    const src = `function f(x) {
+      let r = 0;
+      switch (x) {
+        case 1: r = x + 1; break;
+        case 2: r = x * 2 + 1; break;
+        default: r = x - 1;
+      }
+      return r;
+    }`;
+    const caseOne = runInstrumented(src, 1);
+    const caseTwo = runInstrumented(src, 2);
+    expect(caseOne.result).toBe(2);
+    expect(caseTwo.result).toBe(5);
+    expect(caseTwo.ops).toBeGreaterThan(caseOne.ops);
+  });
+
+  it('counts ops in the try block, the taken catch, and the finalizer', () => {
+    const src = `function f(x) {
+      let r = 0;
+      try {
+        r = x + 1;
+        if (x < 0) throw new Error('neg');
+      } catch (e) {
+        r = x - 1;
+      } finally {
+        r = r + 1;
+      }
+      return r;
+    }`;
+    const noThrow = runInstrumented(src, 5);
+    const threw = runInstrumented(src, -5);
+    expect(noThrow.result).toBe(7);
+    expect(threw.result).toBe(-5);
+  });
+
+  it('scales ops with iterations of a for-of loop', () => {
+    const src = 'function f(arr) { let sum = 0; for (const x of arr) { sum += x; } return sum; }';
+    const small = runInstrumented(src, [1, 2]);
+    const large = runInstrumented(src, [1, 2, 3, 4, 5]);
+    expect(small.result).toBe(3);
+    expect(large.result).toBe(15);
+    expect(large.ops).toBeGreaterThan(small.ops);
+  });
+
+  it('scales ops with the number of enumerable keys in a for-in loop', () => {
+    const src = 'function f(obj) { let count = 0; for (const k in obj) { count += 1; } return count; }';
+    const { result, ops } = runInstrumented(src, { a: 1, b: 2, c: 3 });
+    expect(result).toBe(3);
+    expect(ops).toBe(3);
+  });
+
+  it('honors a labeled continue across nested loops', () => {
+    const src = `function f(n) {
+      let count = 0;
+      outer: for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          if (j > 2) continue outer;
+          count += 1;
+        }
+      }
+      return count;
+    }`;
+    const { result } = runInstrumented(src, 5);
+    expect(result).toBe(15);
+  });
+
   it('surfaces a parse failure as an InstrumentationError of kind parse', () => {
     expect(() => runInstrumented('function( {{{', 1)).toThrow(InstrumentationError);
     try {
