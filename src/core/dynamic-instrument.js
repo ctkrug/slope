@@ -108,7 +108,84 @@ const COUNTER_VAR = '__ops';
 const ITER_VAR = '__iter';
 const ITER_CAP_VAR = '__iterCap';
 const RESERVED_IDENTIFIERS = [COUNTER_VAR, ITER_VAR, ITER_CAP_VAR];
-const RESERVED_IDENTIFIER_PATTERN = new RegExp(`\\b(${RESERVED_IDENTIFIERS.join('|')})\\b`);
+
+/**
+ * Walks a binding pattern (a variable/parameter target, which may be a
+ * plain identifier or a destructuring pattern) and returns the first
+ * reserved name actually *bound* by it, or null. Only binding positions
+ * are checked — a property key, a default-value expression, or unrelated
+ * source text isn't a binding and can't shadow the instrumentation's own
+ * closure variables.
+ */
+function reservedNameInPattern(pattern) {
+  if (!pattern) return null;
+  switch (pattern.type) {
+    case 'Identifier':
+      return RESERVED_IDENTIFIERS.includes(pattern.name) ? pattern.name : null;
+    case 'ObjectPattern':
+      for (const prop of pattern.properties) {
+        const target = prop.type === 'RestElement' ? prop.argument : prop.value;
+        const hit = reservedNameInPattern(target);
+        if (hit) return hit;
+      }
+      return null;
+    case 'ArrayPattern':
+      for (const element of pattern.elements) {
+        const hit = reservedNameInPattern(element);
+        if (hit) return hit;
+      }
+      return null;
+    case 'AssignmentPattern':
+      return reservedNameInPattern(pattern.left);
+    case 'RestElement':
+      return reservedNameInPattern(pattern.argument);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Finds a reserved-name binding anywhere in a function's AST: a
+ * `var`/`let`/`const` declarator, a function parameter (including in
+ * nested functions, whose bodies also read the shared `__ops` closure
+ * variable), a named function expression/declaration, or a `catch`
+ * clause parameter. Returns the offending name, or null if the source is
+ * clear to instrument.
+ */
+function findReservedBinding(root) {
+  let found = null;
+
+  function walk(node) {
+    if (found || !node || typeof node.type !== 'string') return;
+
+    if (node.type === 'VariableDeclarator') {
+      found = reservedNameInPattern(node.id);
+    } else if (isFunctionNode(node)) {
+      if (node.id && RESERVED_IDENTIFIERS.includes(node.id.name)) found = node.id.name;
+      if (!found) for (const param of node.params) {
+        found = reservedNameInPattern(param);
+        if (found) break;
+      }
+    } else if (node.type === 'CatchClause') {
+      found = reservedNameInPattern(node.param);
+    }
+    if (found) return;
+
+    for (const key in node) {
+      if (found) return;
+      if (key === 'type' || key === 'start' || key === 'end') continue;
+      const value = node[key];
+      if (Array.isArray(value)) {
+        for (const child of value) walk(child);
+      } else if (value && typeof value.type === 'string') {
+        walk(value);
+      }
+    }
+  }
+
+  walk(root);
+  return found;
+}
 
 function opsIncrement(count) {
   return count > 0 ? `${COUNTER_VAR}+=${count};` : '';
@@ -286,13 +363,6 @@ function instrumentFunctionBody(fnNode, edits) {
  * a single function expression, ready to be compiled and run.
  */
 export function instrumentSource(source) {
-  if (RESERVED_IDENTIFIER_PATTERN.test(source)) {
-    throw new SyntaxError(
-      `${RESERVED_IDENTIFIERS.join(', ')} are reserved for the instrumentation engine itself — ` +
-        'rename any variable using one of those names in your pasted function.'
-    );
-  }
-
   const wrapped = `(${source})`;
   const ast = parseFunction(source);
   const fnNode = ast.body[0].expression;
@@ -310,6 +380,14 @@ export function instrumentSource(source) {
     throw new SyntaxError(
       "Async functions aren't supported — measurement reads the operation count as soon as " +
         'the function returns, before any awaited work resolves.'
+    );
+  }
+
+  const reservedName = findReservedBinding(fnNode);
+  if (reservedName) {
+    throw new SyntaxError(
+      `${RESERVED_IDENTIFIERS.join(', ')} are reserved for the instrumentation engine itself — ` +
+        `rename the variable/parameter named "${reservedName}" in your pasted function.`
     );
   }
 

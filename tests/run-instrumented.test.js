@@ -143,6 +143,40 @@ describe('runInstrumented', () => {
     );
   });
 
+  it('rejects a destructured parameter that binds a reserved name', () => {
+    try {
+      runInstrumented('function f({ __ops }) { return __ops; }', { __ops: 1 });
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(InstrumentationError);
+      expect(err.kind).toBe('parse');
+      expect(err.message).toMatch(/__ops/);
+    }
+  });
+
+  it('rejects a catch clause parameter that binds a reserved name', () => {
+    expect(() =>
+      runInstrumented('function f(n) { try { return n; } catch (__iter) { return 0; } }', 6)
+    ).toThrow(InstrumentationError);
+  });
+
+  it('rejects a nested function parameter that binds a reserved name', () => {
+    // A callback's own __ops parameter would shadow the shared counter only
+    // within that callback's body, silently zeroing out its contribution.
+    expect(() =>
+      runInstrumented('function f(arr) { return arr.map(function (__ops) { return __ops + 1; }); }', [1, 2])
+    ).toThrow(InstrumentationError);
+  });
+
+  it('does not reject a reserved name that only appears in a string literal or as a property', () => {
+    // Only actual variable/parameter *bindings* can shadow the injected
+    // counters; text that merely mentions "__ops" elsewhere is harmless.
+    const src = 'function f(n) { const label = "__ops total"; return { __ops: n }.__ops; }';
+    const { result, ops } = runInstrumented(src, 6);
+    expect(result).toBe(6);
+    expect(ops).toBeGreaterThan(0);
+  });
+
   it('does not false-positive on ordinary names that merely contain "ops"', () => {
     const { result, ops } = runInstrumented('function f(n) { let opsCounter = 5; return opsCounter + n; }', 6);
     expect(result).toBe(11);
