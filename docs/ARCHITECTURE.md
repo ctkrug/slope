@@ -47,6 +47,17 @@ generator(n) ──┘   generating a fresh input each time
     (`if (++__iter > __iterCap) throw ...`) so a runaway loop throws
     instead of hanging the tab — this is the safety net in place of a Web
     Worker sandbox (still on the backlog as a stretch item).
+  - `countAlwaysExecutedOps(node, edits)` — a statement's op count isn't
+    always a flat static sum: a `ConditionalExpression` (`a ? b : c`)
+    only ever runs one branch, and a `LogicalExpression`'s (`&&`/`||`/`??`)
+    right operand may be skipped by short-circuiting. This walks a
+    statement once, returning the ops that *always* run while excluding
+    each conditional branch from that total — instead splicing an inline
+    `(__ops += N, branch)` counter directly into the branch's own source
+    position, so it only fires when that branch is actually reached at
+    runtime. Recurses into nested conditionals inside a branch the same
+    way. Without this, `cond ? cheap() : expensive()` reported the same
+    op count regardless of which arm ran.
   - `compileInstrumented` / `runInstrumented` — compile the instrumented
     source with `new Function` and run it, normalizing parse/compile/
     runtime failures into `InstrumentationError` with a `kind` field so
@@ -55,10 +66,14 @@ generator(n) ──┘   generating a fresh input each time
     (`kind: 'parse'`) rather than silently mismeasured — a generator's
     body doesn't run until its iterator is consumed (always 0 ops), and
     an async function returns before `run()`'s synchronous op-count read.
-    Source that declares a variable named `__ops`, `__iter`, or
-    `__iterCap` (the engine's own closure variables) is rejected too — a
+    A pasted function that *binds* a reserved name (`__ops`, `__iter`, or
+    `__iterCap` — the engine's own closure variables) as a variable,
+    parameter, destructured field, or catch clause is rejected too — a
     local shadowing declaration would silently redirect every injected
-    counter increment into the user's own variable instead.
+    counter increment into the user's own variable instead. This check
+    (`findReservedBinding`) walks binding positions in the AST rather
+    than text-matching the raw source, so a reserved name mentioned in a
+    string literal, comment, or property access doesn't false-positive.
 
   **Known limitation:** because the transform only splices into statements
   in the *pasted* source, calls into native built-ins (`.sort()`,
@@ -77,7 +92,12 @@ generator(n) ──┘   generating a fresh input each time
   and `O(n log n)` both evaluate to 0 at n=1, so anchoring blindly to
   `samples[0]` when the smallest measured size is 1 used to collapse the
   whole curve to a flat zero line and corrupt the fit. `bestFitCurve`
-  picks the least-squared-error match.
+  picks the least-squared-error match. **A single sample always "fits"
+  `O(1)` with zero error** — every curve normalizes exactly onto one
+  point, so every curve ties and `O(1)` wins by being declared first in
+  `CURVES`; this is a meaningless verdict, not a real fit, so `main.js`
+  special-cases `samples.length === 1` and asks for another size instead
+  of showing a curve name.
 
 - **`generators.js`** — input generators (`randomArray`, `sortedArray`,
   `reverseSortedArray`, `randomString`, `nestedArray`, `scalarN`), each
