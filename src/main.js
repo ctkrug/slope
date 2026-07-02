@@ -187,7 +187,7 @@ function runMeasurement() {
 
   if (regression.regressed) {
     setFitLabel(
-      `looks ${regression.earlyCurve}, diverges to ${regression.overallCurve} after n=${regression.divergesAfter}`,
+      `looks ${regression.earlyCurve}, diverges to ${regression.overallCurve} starting at n=${regression.divergesAfter}`,
       { tone: 'danger', shake: true }
     );
   } else {
