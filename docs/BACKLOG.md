@@ -50,7 +50,8 @@ guessing from source text.
 - [ ] Encode a run (function source + sizes + resulting samples) into a compact URL-safe string
       and decode it back into an already-measured run on page load, so a result is linkable
       directly in a PR review comment.
-- [ ] Verify the static `dist/` build works correctly when served from a non-root subpath
-      (matches the relative-path convention already set in `vite.config.js`).
-- [ ] **Design polish**: build the `site/` landing page in the same blueprint direction as the
-      app itself, so the marketing page and the tool read as one brand per the design standard.
+- [x] Verify the static build works correctly when served from a non-root subpath (relative
+      `base: './'` in `vite.config.js`; build output confirmed to use relative asset paths).
+- [x] **Design polish**: ship the marketing surface in the app's own blueprint direction. Since
+      the app is servable, `site/` is the built app itself, extended with a below-the-fold
+      explainer + FAQ and a portfolio footer, so tool and landing read as one brand.
