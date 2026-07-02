@@ -40,6 +40,11 @@ export function createSoundController() {
     if (muted) return;
     const ctx = ensureContext();
     if (!ctx) return;
+    // Some browsers (notably Safari) still create a new AudioContext in a
+    // 'suspended' state even when construction happens inside a user
+    // gesture's call stack — without resuming it, every scheduled tone
+    // queues silently and never actually plays, with no error to surface.
+    if (ctx.state === 'suspended') ctx.resume?.();
 
     const startAt = ctx.currentTime + delay;
     const oscillator = ctx.createOscillator();

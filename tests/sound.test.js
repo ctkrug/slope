@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSoundController } from '../src/ui/sound.js';
 
 class MockOscillator {
+  constructor() {
+    this.frequency = { value: 0 };
+  }
   connect(target) {
     return target;
   }
@@ -95,5 +98,32 @@ describe('createSoundController', () => {
     vi.stubGlobal('AudioContext', vi.fn(() => ctx));
     sound.tick();
     expect(ctx.createOscillator).not.toHaveBeenCalled();
+  });
+
+  it('resumes a context that starts suspended, so scheduled tones are not silently dropped', () => {
+    // Safari (and sometimes Chrome) can construct an AudioContext already
+    // 'suspended' even from inside a user-gesture handler; every node
+    // scheduled on it queues but never audibly plays until resume() runs.
+    const ctx = new MockAudioContext();
+    ctx.state = 'suspended';
+    ctx.resume = vi.fn();
+    vi.stubGlobal('AudioContext', vi.fn(() => ctx));
+
+    const sound = createSoundController();
+    sound.tick();
+
+    expect(ctx.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call resume on a context that is already running', () => {
+    const ctx = new MockAudioContext();
+    ctx.state = 'running';
+    ctx.resume = vi.fn();
+    vi.stubGlobal('AudioContext', vi.fn(() => ctx));
+
+    const sound = createSoundController();
+    sound.tick();
+
+    expect(ctx.resume).not.toHaveBeenCalled();
   });
 });
