@@ -8,23 +8,27 @@ further when it's picked up. All start unchecked.
 The core differentiator: actually running pasted code and counting real operations, not
 guessing from source text.
 
-- [ ] Build a dynamic op-counting interpreter shim: walk the AST and execute it directly
+- [x] Build a dynamic op-counting interpreter shim: walk the AST and execute it directly
       (or transform + `Function()` with injected counters) so operations are counted as the
       function actually runs against a given input — covering loops, recursion, and closures,
       the cases where static counting (current `countStaticOps`) diverges most from real cost.
-- [ ] Sandbox execution against runaway loops/infinite recursion (iteration cap + timeout via
-      a Web Worker, so a bad paste can't hang the tab).
-- [ ] Surface parse/runtime errors from the pasted function as a designed error state, not a
+- [x] Sandbox execution against runaway loops/infinite recursion (iteration cap + timeout via
+      a Web Worker, so a bad paste can't hang the tab). *(Iteration cap done; still synchronous
+      on the main thread — a Web Worker timeout remains a stretch item, see below.)*
+- [x] Surface parse/runtime errors from the pasted function as a designed error state, not a
       console exception.
+- [ ] **Stretch:** move execution into a Web Worker with a wall-clock timeout, so a paste that's
+      infinite-but-under-the-iteration-cap (e.g. a tight empty-looking loop) still can't freeze
+      the tab.
 
 ## Epic 2 — Input generation and measurement runs
 
-- [ ] Build input generators: random array, sorted array, reverse-sorted array, random string,
+- [x] Build input generators: random array, sorted array, reverse-sorted array, random string,
       nested array — parameterized by size `n`.
-- [ ] Let the user pick a custom set of input sizes (e.g. `[10, 100, 1000, 10000]`) and run the
+- [x] Let the user pick a custom set of input sizes (e.g. `[10, 100, 1000, 10000]`) and run the
       instrumented function once per size, wiring the resulting `{ n, ops }` samples into
       `bestFitCurve` (already in `src/core/curves.js`) to surface the matched curve + fit error.
-- [ ] Detect and flag regression: when late samples diverge from the curve the early samples
+- [x] Detect and flag regression: when late samples diverge from the curve the early samples
       suggested (the "secretly O(n²)" case named in the README).
 
 ## Epic 3 — UI: function input, plot, and library
