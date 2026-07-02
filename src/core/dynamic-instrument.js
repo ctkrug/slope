@@ -8,6 +8,23 @@
 
 import { parseFunction } from './instrument.js';
 
+export const DEFAULT_MAX_ITERATIONS = 2_000_000;
+
+/**
+ * A designed error state for anything that goes wrong turning pasted
+ * source into a measured op-count: a parse failure, a compile failure
+ * (valid JS the instrumenter can't handle), or a runtime failure
+ * (including hitting the iteration cap). `kind` lets callers render a
+ * specific message instead of a generic "something broke".
+ */
+export class InstrumentationError extends Error {
+  constructor(message, kind) {
+    super(message);
+    this.name = 'InstrumentationError';
+    this.kind = kind;
+  }
+}
+
 const OP_NODE_TYPES = new Set([
   'BinaryExpression',
   'LogicalExpression',
@@ -274,4 +291,57 @@ export function instrumentSource(source) {
   const edits = [];
   instrumentFunctionBody(fnNode, edits);
   return applyEdits(wrapped, edits);
+}
+
+/**
+ * Compiles a function's source into an instrumented, callable form.
+ * Throws InstrumentationError('parse') for invalid source and
+ * InstrumentationError('compile') if the instrumented source somehow
+ * fails to compile (should only happen on an instrumenter bug).
+ */
+export function compileInstrumented(source, { maxIterations = DEFAULT_MAX_ITERATIONS } = {}) {
+  let instrumented;
+  try {
+    instrumented = instrumentSource(source);
+  } catch (err) {
+    throw new InstrumentationError(err.message, 'parse');
+  }
+
+  let factory;
+  try {
+    factory = new Function(
+      ITER_CAP_VAR,
+      `
+      let ${COUNTER_VAR} = 0;
+      let ${ITER_VAR} = 0;
+      const fn = ${instrumented};
+      return function (input) {
+        ${COUNTER_VAR} = 0;
+        ${ITER_VAR} = 0;
+        const result = fn(input);
+        return { result, ops: ${COUNTER_VAR} };
+      };
+      `
+    );
+  } catch (err) {
+    throw new InstrumentationError(err.message, 'compile');
+  }
+
+  return factory(maxIterations);
+}
+
+/**
+ * Runs a pasted function's source against a single input and returns its
+ * result plus its measured operation count. Runtime errors from the
+ * pasted function (including the iteration-cap guard tripping) surface as
+ * InstrumentationError('runtime') rather than an unhandled exception.
+ */
+export function runInstrumented(source, input, options = {}) {
+  const run = compileInstrumented(source, options);
+  try {
+    return run(input);
+  } catch (err) {
+    if (err instanceof InstrumentationError) throw err;
+    throw new InstrumentationError(err.message, 'runtime');
+  }
 }
