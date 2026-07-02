@@ -55,6 +55,10 @@ generator(n) ──┘   generating a fresh input each time
     (`kind: 'parse'`) rather than silently mismeasured — a generator's
     body doesn't run until its iterator is consumed (always 0 ops), and
     an async function returns before `run()`'s synchronous op-count read.
+    Source that declares a variable named `__ops`, `__iter`, or
+    `__iterCap` (the engine's own closure variables) is rejected too — a
+    local shadowing declaration would silently redirect every injected
+    counter increment into the user's own variable instead.
 
   **Known limitation:** because the transform only splices into statements
   in the *pasted* source, calls into native built-ins (`.sort()`,
@@ -67,9 +71,13 @@ generator(n) ──┘   generating a fresh input each time
   `src/samples/library.js`.
 
 - **`curves.js`** — reference Big-O curves (`O(1)` … `O(2^n)`), each
-  normalized to a measured series' first sample so shape (not raw
-  magnitude) is what's compared. `bestFitCurve` picks the least-squared-
-  error match.
+  normalized (via `pickAnchor` + `normalizeCurve`) to a measured series'
+  first sample so shape (not raw magnitude) is what's compared —
+  *first sample where the curve isn't zero*, specifically: `O(log n)`
+  and `O(n log n)` both evaluate to 0 at n=1, so anchoring blindly to
+  `samples[0]` when the smallest measured size is 1 used to collapse the
+  whole curve to a flat zero line and corrupt the fit. `bestFitCurve`
+  picks the least-squared-error match.
 
 - **`generators.js`** — input generators (`randomArray`, `sortedArray`,
   `reverseSortedArray`, `randomString`, `nestedArray`, `scalarN`), each
